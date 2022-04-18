@@ -1,0 +1,234 @@
+//IMPLENENTATION OF HEAP MANAGEMENT SCHEME
+//USING FREE AND ALLOCATE FUNCTIONS
+//NAME: AMAR KUMAR GOND
+//BT20CSE010
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct block_tag
+{
+
+    int size ;                                                 //size of memory blocks
+    int address ;                                               //integer represent address to that block
+    struct block_tag *prev ;                                     //prev pointer
+    struct block_tag *next ;                                      //next  pointer
+
+}block;
+
+block* remove_block(block *temp,block *head)                            //remove block from the given list
+{
+    block *prev ;
+
+    prev=temp->prev ;
+    if(prev==NULL)
+    {
+        head=temp->next ;
+        if(temp->next!=NULL)
+        {
+            temp->next->prev=NULL ;
+        }
+    }
+    else
+    {
+        prev->next=temp->next ;
+        if(temp->next!=NULL)
+        {
+            temp->next->prev=prev ;
+        }
+    }
+    temp->next=NULL ;
+    temp->prev=NULL ;
+    return head ;
+}
+block* create_block(int size,int address)                                       //creating memory free memory blocks
+{
+    block temp=(block)malloc(sizeof(block)) ;
+    temp->size=size ;
+    temp->address=address ;
+    temp->next=NULL ;
+    temp->prev=NULL ;
+    return temp ;
+}
+block* insert_end(block **head,block *tail,block *temp)                                 //insertion of block at the end
+{
+ if(tail==NULL)
+ {
+     *head=temp ;
+     temp->prev=NULL ;
+
+ }
+ else
+ {
+     tail->next=temp ;
+     temp->prev=tail ;
+ }
+ return temp ;
+}
+block *malloc_allocate(block **free_list,int size)                                          //memory allocated from freee list
+                                                                                            //for allocation we will search for the first block whose size is greater or equal to required size
+{
+    block* temp=*free_list ;
+    while(temp!=NULL&&temp->size<size)
+    {
+        temp=temp->next ;
+    }
+    if(temp==NULL)
+    {
+        return NULL ;
+    }
+    else
+    {
+        if(temp->size==size)                                            //after searching if size is equal to required size then delete that block from free list and
+        {                                                                //and add it to allocated list
+            *free_list=remove_block(temp,*free_list) ;
+            return temp ;
+        }
+        else
+        {
+            temp->size=temp->size-size ;                                                //fragmenting the whole block
+            temp=create_block(size,temp->address) ;                                     //when size is greater then create then leave the extra size block
+            return temp ;                                                               //and for required size create a block and add it to the allocated list
+        }
+    }
+}
+block *free_block(block *p,block *free_list,block **allocated_list)                         //free function used for deallocation
+{
+    *allocated_list=remove_block(p,*allocated_list) ;                                       //remove the block from allocated list and now insert the
+                                                                                            //insert the allocated list to the first list
+    block *temp=free_list ;
+    block *prev=NULL ;
+    while(temp!=NULL&&temp->address<p->address)
+    {
+        prev=temp ;
+        temp=temp->next ;
+    }
+    if(temp==NULL)
+    {
+
+        if(prev==NULL)
+        {
+            free_list=p ;
+
+        }
+        else
+        {
+            prev->next=p ;
+            p->prev=prev ;
+            p->next=NULL ;
+        }
+    }
+    else if(p->address==temp->address)                                          //if address is same for both blocks then they are adacent and the should be merged
+    {
+        temp->size=temp->size+p->size ;
+    }
+    else                                                                        //if no adacent address is available then insert the node to the
+    {
+        if(prev==NULL)                                                           //position between its lower address and just higher address like partition
+        {
+            p->next=temp ;
+            temp->prev=p ;
+            free_list=p ;
+        }
+        else
+        {
+            p->next=prev->next ;
+            prev->next=p ;
+            p->prev=prev ;
+        }
+        if(p->next!=NULL)
+        {
+            p->next->prev=p ;
+        }
+
+    }
+
+   return free_list ;
+
+}
+void print_list(block *temp)                                    //printing of list
+{
+    while(temp!=NULL)
+    {
+        printf("%d ",temp->size) ;
+        temp=temp->next ;
+    }
+    printf("\n") ;
+}
+int main()
+{
+    block *free_list,*allocated_list,*tail_free,*tail_allocated ;
+    block *temp ;
+    int n,i,size ;
+    free_list=NULL ;
+    allocated_list=NULL ;
+    tail_free=NULL ;
+    tail_allocated=NULL ;
+    printf("enter the number of largest countinous memory blocks are available\n");
+    scanf("%d",&n) ;
+    printf("enter the size of the block with increasing order of the address\n") ;
+    for(i=0;i<n;i++)
+    {
+        scanf("%d",&size) ;
+        temp=create_block(size,i) ;
+        tail_free=insert_end(&free_list,tail_free,temp) ;
+
+    }
+    do{
+        printf("enter the size that is to allocated\n") ;
+        scanf("%d",&size) ;
+        temp=malloc_allocate(&free_list,size) ;
+        if(temp==NULL)
+        {
+            if(free_list==NULL)
+            {
+                printf("no memory available\n") ;
+            }
+            else
+            {
+               printf("no memory block is available for this size\n");
+            }
+
+        }
+        else
+        {
+
+
+        tail_allocated=insert_end(&allocated_list,tail_allocated,temp) ;                //memory allocation takes place
+        printf("do u want to free this list then enter 1 and 0 to not to free\n") ;
+        scanf("%d",&size) ;
+        if(size==1)
+        {
+            free_list=free_block(temp,free_list,&allocated_list) ;                      //free memory funciton like free funcitons
+        }
+        }
+        printf("do u want to continue allocation process and deallocation process then enter 1 to stop enter 0 \n ");
+        scanf("%d",&size) ;
+
+
+    }while(size!=0);
+    printf("the free blocks size is as follows\n") ;
+    print_list(free_list) ;
+    printf("the allocted blocks size is as follows\n") ;
+    print_list(allocated_list) ;
+    if(allocated_list!=NULL)
+    {
+        printf("enter 1 if u want to free all allocated list and to leave it as it is enter 0\n") ;
+        scanf("%d",&size) ;
+        if(size==1)
+        {
+            printf("now the free list and allocated list after freeing all the allocated memory block\n") ;
+        }
+        while(size!=0&&allocated_list!=NULL)                                // all allocated memory blocks are being freed
+        {
+            free_list=free_block(allocated_list,free_list,&allocated_list);
+
+        }
+    }
+    if(size==1)
+    {
+    printf("now affter deallocation of all allocated blocks now the the free memory blocks are\n") ;
+    print_list(free_list) ;
+    }
+
+    return 0 ;
+}
